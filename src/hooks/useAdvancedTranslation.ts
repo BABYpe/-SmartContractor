@@ -1,139 +1,154 @@
-import { useMemo, useCallback } from 'react';
-import { translationEngine } from '../utils/translationEngine';
+import { useMemo } from 'react';
+import { translations } from '../utils/translations';
 import type { Language } from '../types';
 
-export function useAdvancedTranslation(lang: Language) {
-  // دالة الترجمة الأساسية
-  const t = useCallback((key: string, fallback?: string) => {
-    return translationEngine.translate(key, lang, fallback);
+export function useAdvancedTranslation(lang: Language = 'ar') {
+  const translationData = useMemo(() => {
+    return translations[lang] || translations.ar;
   }, [lang]);
 
-  // دالة الترجمة مع متغيرات
-  const tv = useCallback((key: string, vars: Record<string, string | number>, fallback?: string) => {
-    return translationEngine.translateWithVars(key, vars, lang);
-  }, [lang]);
-
-  // دالة الترجمة المتعددة
-  const tm = useCallback((keys: string[]) => {
-    return translationEngine.translateMultiple(keys, lang);
-  }, [lang]);
-
-  // اتجاه النص
-  const dir = useMemo(() => lang === 'ar' ? 'rtl' : 'ltr', [lang]);
-
-  // فحص اللغة العربية
-  const isRTL = useMemo(() => lang === 'ar', [lang]);
-
-  // تنسيق الأرقام حسب اللغة
-  const formatNumber = useCallback((num: number, options?: Intl.NumberFormatOptions) => {
-    const locale = lang === 'ar' ? 'ar-SA' : 'en-US';
-    return new Intl.NumberFormat(locale, options).format(num);
-  }, [lang]);
-
-  // تنسيق العملة
-  const formatCurrency = useCallback((amount: number, currency: string = 'SAR') => {
-    const locale = lang === 'ar' ? 'ar-SA' : 'en-US';
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2
-    }).format(amount);
-  }, [lang]);
-
-  // تنسيق التاريخ
-  const formatDate = useCallback((date: Date | string, options?: Intl.DateTimeFormatOptions) => {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    const locale = lang === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US';
-    const defaultOptions: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+  // Translation function
+  const t = useMemo(() => {
+    return (key: string): string => {
+      return translationData[key as keyof typeof translationData] || key;
     };
-    return new Intl.DateTimeFormat(locale, { ...defaultOptions, ...options }).format(dateObj);
+  }, [translationData]);
+
+  // Text direction
+  const dir = useMemo(() => {
+    return lang === 'ar' ? 'rtl' : 'ltr';
   }, [lang]);
 
-  // تنسيق الوقت
-  const formatTime = useCallback((date: Date | string, options?: Intl.DateTimeFormatOptions) => {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    const locale = lang === 'ar' ? 'ar-SA' : 'en-US';
-    const defaultOptions: Intl.DateTimeFormatOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
+  // Format time
+  const formatTime = useMemo(() => {
+    return (date: Date): string => {
+      return date.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
     };
-    return new Intl.DateTimeFormat(locale, { ...defaultOptions, ...options }).format(dateObj);
   }, [lang]);
 
-  // تنسيق النسبة المئوية
-  const formatPercent = useCallback((value: number, decimals: number = 1) => {
-    const locale = lang === 'ar' ? 'ar-SA' : 'en-US';
-    return new Intl.NumberFormat(locale, {
-      style: 'percent',
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
-    }).format(value / 100);
+  // Format date
+  const formatDate = useMemo(() => {
+    return (date: Date): string => {
+      return date.toLocaleDateString(lang === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    };
   }, [lang]);
 
-  // ترجمة أنواع المشاريع
-  const translateProjectType = useCallback((projectType: string) => {
-    return t(projectType, projectType);
-  }, [t]);
-
-  // ترجمة المدن
-  const translateCity = useCallback((city: string) => {
-    return t(city, city);
-  }, [t]);
-
-  // ترجمة بنود الأعمال
-  const translateBoqItem = useCallback((itemKey: string) => {
-    return t(itemKey, itemKey);
-  }, [t]);
-
-  // ترجمة الوحدات
-  const translateUnit = useCallback((unit: string) => {
-    return t(unit, unit);
-  }, [t]);
-
-  // ترجمة الحالات
-  const translateStatus = useCallback((status: string) => {
-    return t(status, status);
-  }, [t]);
-
-  // دالة مساعدة للحصول على النص المناسب حسب اللغة
-  const getLocalizedText = useCallback((arText: string, enText: string) => {
-    return lang === 'ar' ? arText : enText;
+  // Format currency
+  const formatCurrency = useMemo(() => {
+    return (amount: number, currency: string = 'SAR'): string => {
+      return new Intl.NumberFormat(lang === 'ar' ? 'ar-SA' : 'en-US', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+      }).format(amount);
+    };
   }, [lang]);
 
-  // دالة لترجمة الأخطاء
-  const translateError = useCallback((errorKey: string, fallback: string = 'حدث خطأ غير متوقع') => {
-    return t(`error_${errorKey}`, fallback);
-  }, [t]);
+  // Format number
+  const formatNumber = useMemo(() => {
+    return (num: number): string => {
+      return new Intl.NumberFormat(lang === 'ar' ? 'ar-SA' : 'en-US').format(num);
+    };
+  }, [lang]);
 
-  // دالة لترجمة رسائل النجاح
-  const translateSuccess = useCallback((successKey: string, fallback: string = 'تم بنجاح') => {
-    return t(`success_${successKey}`, fallback);
-  }, [t]);
+  // Format percentage
+  const formatPercentage = useMemo(() => {
+    return (value: number): string => {
+      return new Intl.NumberFormat(lang === 'ar' ? 'ar-SA' : 'en-US', {
+        style: 'percent',
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+      }).format(value / 100);
+    };
+  }, [lang]);
+
+  // Format file size
+  const formatFileSize = useMemo(() => {
+    return (bytes: number): string => {
+      const sizes = lang === 'ar' 
+        ? ['بايت', 'كيلوبايت', 'ميجابايت', 'جيجابايت']
+        : ['B', 'KB', 'MB', 'GB'];
+      
+      if (bytes === 0) return `0 ${sizes[0]}`;
+      
+      const i = Math.floor(Math.log(bytes) / Math.log(1024));
+      const size = (bytes / Math.pow(1024, i)).toFixed(1);
+      
+      return `${size} ${sizes[i]}`;
+    };
+  }, [lang]);
+
+  // Format duration
+  const formatDuration = useMemo(() => {
+    return (seconds: number): string => {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+
+      if (lang === 'ar') {
+        if (hours > 0) {
+          return `${hours} ساعة ${minutes} دقيقة`;
+        } else if (minutes > 0) {
+          return `${minutes} دقيقة ${secs} ثانية`;
+        } else {
+          return `${secs} ثانية`;
+        }
+      } else {
+        if (hours > 0) {
+          return `${hours}h ${minutes}m`;
+        } else if (minutes > 0) {
+          return `${minutes}m ${secs}s`;
+        } else {
+          return `${secs}s`;
+        }
+      }
+    };
+  }, [lang]);
+
+  // Get relative time
+  const getRelativeTime = useMemo(() => {
+    return (date: Date): string => {
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+      if (lang === 'ar') {
+        if (diffInSeconds < 60) return 'منذ لحظات';
+        if (diffInSeconds < 3600) return `منذ ${Math.floor(diffInSeconds / 60)} دقيقة`;
+        if (diffInSeconds < 86400) return `منذ ${Math.floor(diffInSeconds / 3600)} ساعة`;
+        return `منذ ${Math.floor(diffInSeconds / 86400)} يوم`;
+      } else {
+        if (diffInSeconds < 60) return 'just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        return `${Math.floor(diffInSeconds / 86400)}d ago`;
+      }
+    };
+  }, [lang]);
 
   return {
     t,
-    tv,
-    tm,
     dir,
-    isRTL,
-    formatNumber,
-    formatCurrency,
-    formatDate,
+    lang,
     formatTime,
-    formatPercent,
-    translateProjectType,
-    translateCity,
-    translateBoqItem,
-    translateUnit,
-    translateStatus,
-    getLocalizedText,
-    translateError,
-    translateSuccess,
-    lang
+    formatDate,
+    formatCurrency,
+    formatNumber,
+    formatPercentage,
+    formatFileSize,
+    formatDuration,
+    getRelativeTime
   };
 }
+
+export type { Language };

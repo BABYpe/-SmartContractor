@@ -8,15 +8,5 @@ interface ProjectTemplatesProps {
 }
 
 export default function ProjectTemplates({ lang, t }: ProjectTemplatesProps) {
-  const handleTemplateSelect = (template: any) => {
-    // يمكن إضافة منطق إضافي هنا عند اختيار القالب
-    console.log('Selected template:', template);
-  };
-
-  return (
-    <SmartProjectTemplates 
-      lang={lang} 
-      onTemplateSelect={handleTemplateSelect}
-    />
-  );
+  return <SmartProjectTemplates lang={lang} />;
 }

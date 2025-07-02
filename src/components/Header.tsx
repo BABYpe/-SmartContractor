@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Menu, Calendar, Globe, Sparkles } from 'lucide-react';
+import { Menu, Calendar, Globe, Sparkles, Github, ExternalLink, Brain } from 'lucide-react';
 
 interface HeaderProps {
   title: string;
@@ -10,7 +10,6 @@ interface HeaderProps {
 }
 
 export default function Header({ title, subtitle, sidebarOpen, setSidebarOpen }: HeaderProps) {
-  // الحصول على التاريخ الميلادي الحالي
   const getCurrentDate = () => {
     const now = new Date();
     const options: Intl.DateTimeFormatOptions = {
@@ -40,59 +39,73 @@ export default function Header({ title, subtitle, sidebarOpen, setSidebarOpen }:
     >
       <div className="flex items-center">
         {/* Mobile Menu Button */}
-        <button
+        <motion.button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden mr-4 p-2 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 transition-colors duration-200"
+          className="lg:hidden mr-4 p-3 rounded-2xl bg-white/40 backdrop-blur-sm border border-white/50 hover:bg-white/60 transition-all duration-200 shadow-lg hover:shadow-xl z-50 relative"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           <Menu className="w-6 h-6 text-gray-700" />
-        </button>
+          <span className="sr-only">فتح القائمة</span>
+        </motion.button>
 
-        {/* شعار محسن وحديث */}
+        {/* Logo Section */}
         <motion.div
-          className="relative mr-4"
-          whileHover={{ scale: 1.1 }}
+          className="relative mr-6"
+          whileHover={{ scale: 1.05 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         >
-          {/* خلفية متوهجة */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl blur-lg opacity-30 animate-pulse"></div>
+          {/* Glowing Background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl blur-xl opacity-30 animate-pulse"></div>
           
-          {/* الشعار الرئيسي */}
-          <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-4 rounded-2xl shadow-2xl">
-            <Zap className="w-8 h-8 text-white" />
+          {/* Main Logo Container */}
+          <div className="relative bg-white/95 backdrop-blur-sm p-4 rounded-3xl shadow-2xl border border-white/40">
+            <img 
+              src="https://github.com/BABYpe/achoxproeng/blob/main/achoxpro.png?raw=true"
+              alt="AchoX Pro Engineering Logo"
+              className="w-14 h-14 object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }}
+            />
+            <div className="hidden w-14 h-14 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center">
+              <Brain className="w-8 h-8 text-white" />
+            </div>
           </div>
           
-          {/* مؤشر الذكاء الاصطناعي */}
+          {/* AI Indicator */}
           <motion.div
-            className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center"
+            className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center shadow-lg"
             animate={{ 
               scale: [1, 1.2, 1],
               rotate: [0, 180, 360]
             }}
             transition={{ 
-              duration: 3,
+              duration: 4,
               repeat: Infinity,
               ease: "easeInOut"
             }}
           >
-            <Sparkles className="w-2 h-2 text-white" />
+            <Sparkles className="w-3 h-3 text-white" />
           </motion.div>
         </motion.div>
         
+        {/* Brand Info */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
         >
-          {/* اسم محسن وقصير */}
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
-            تكلفة AI
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+            AchoX Pro Engineering
           </h1>
-          <div className="flex items-center mt-1">
-            <Sparkles className="w-4 h-4 text-yellow-500 mr-2" />
-            <span className="text-xs sm:text-sm font-medium text-gray-600 uppercase tracking-wide">
-              Smart Construction Pricing
+          <div className="flex items-center mt-2">
+            <Sparkles className="w-5 h-5 text-yellow-500 mr-2" />
+            <span className="text-sm sm:text-base font-semibold text-gray-600 uppercase tracking-wide">
+              Smart Construction Pricing Platform
             </span>
-            <Sparkles className="w-4 h-4 text-yellow-500 ml-2" />
+            <Sparkles className="w-5 h-5 text-yellow-500 ml-2" />
           </div>
           <motion.p 
             className="text-sm sm:text-base text-gray-700 mt-2 max-w-2xl leading-relaxed"
@@ -102,27 +115,41 @@ export default function Header({ title, subtitle, sidebarOpen, setSidebarOpen }:
           >
             منصة التسعير الذكي المدعومة بالذكاء الاصطناعي المتقدم
           </motion.p>
+          
+          {/* GitHub Link */}
+          <motion.a
+            href="https://github.com/BABYpe/achoxproeng"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center mt-3 text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200 font-medium"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Github className="w-4 h-4 mr-2" />
+            <span>مستودع المشروع</span>
+            <ExternalLink className="w-3 h-3 ml-1" />
+          </motion.a>
         </motion.div>
       </div>
 
       {/* Date and Time Display */}
       <motion.div
-        className="hidden md:flex flex-col items-end space-y-2"
+        className="hidden md:flex flex-col items-end space-y-3"
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.3, duration: 0.6 }}
       >
-        <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/30">
+        <div className="bg-white/30 backdrop-blur-sm rounded-2xl px-6 py-3 border border-white/40 shadow-lg">
           <div className="flex items-center text-gray-700">
-            <Calendar className="w-4 h-4 mr-2" />
-            <span className="text-sm font-medium">{getCurrentDate()}</span>
+            <Calendar className="w-5 h-5 mr-3" />
+            <span className="text-sm font-semibold">{getCurrentDate()}</span>
           </div>
         </div>
         
-        <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/30">
+        <div className="bg-white/30 backdrop-blur-sm rounded-2xl px-6 py-3 border border-white/40 shadow-lg">
           <div className="flex items-center text-gray-700">
-            <Globe className="w-4 h-4 mr-2" />
-            <span className="text-sm font-medium">{getCurrentTime()}</span>
+            <Globe className="w-5 h-5 mr-3" />
+            <span className="text-lg font-bold font-mono">{getCurrentTime()}</span>
           </div>
         </div>
       </motion.div>

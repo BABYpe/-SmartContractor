@@ -5,315 +5,319 @@ import {
   User, 
   Bell, 
   Shield, 
-  Palette, 
   Globe, 
+  Palette, 
   Database,
+  Save,
+  RefreshCw,
   Download,
   Upload,
-  Save,
-  RefreshCw
+  Trash2,
+  Eye,
+  EyeOff,
+  Check,
+  X
 } from 'lucide-react';
 import GlassCard from './GlassCard';
 import AnimatedButton from './AnimatedButton';
 import toast from 'react-hot-toast';
+import type { Language } from '../types';
 
-export default function Settings() {
+interface SettingsProps {
+  lang: Language;
+  setLang: (lang: Language) => void;
+  t: any;
+}
+
+export default function Settings({ lang, setLang, t }: SettingsProps) {
   const [activeTab, setActiveTab] = useState('profile');
   const [settings, setSettings] = useState({
     profile: {
-      name: 'أحمد محمد السعيد',
-      email: 'ahmed@smartcontractor.com',
+      fullName: 'أحمد محمد',
+      email: 'ahmed@example.com',
       phone: '+966501234567',
       company: 'شركة المقاولات المتقدمة',
-      position: 'مدير المشاريع',
-      avatar: ''
+      position: 'مهندس مشاريع'
     },
     notifications: {
       emailNotifications: true,
       smsNotifications: false,
-      projectUpdates: true,
-      paymentReminders: true,
-      systemAlerts: true,
-      marketingEmails: false
+      pushNotifications: true,
+      marketUpdates: true,
+      projectAlerts: true
     },
     security: {
       twoFactorAuth: false,
       sessionTimeout: 30,
-      passwordExpiry: 90,
-      loginAlerts: true
+      passwordExpiry: 90
     },
-    appearance: {
+    preferences: {
       theme: 'light',
-      language: 'ar',
-      dateFormat: 'dd/mm/yyyy',
       currency: 'SAR',
-      timezone: 'Asia/Riyadh'
-    },
-    system: {
-      autoSave: true,
-      backupFrequency: 'daily',
-      dataRetention: 365,
-      apiAccess: false
+      dateFormat: 'dd/mm/yyyy',
+      timeFormat: '24h',
+      autoSave: true
     }
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const tabs = [
-    { id: 'profile', label: 'الملف الشخصي', icon: User },
-    { id: 'notifications', label: 'الإشعارات', icon: Bell },
-    { id: 'security', label: 'الأمان', icon: Shield },
-    { id: 'appearance', label: 'المظهر', icon: Palette },
-    { id: 'system', label: 'النظام', icon: Database }
+    { id: 'profile', label: lang === 'ar' ? 'الملف الشخصي' : 'Profile', icon: User },
+    { id: 'notifications', label: lang === 'ar' ? 'الإشعارات' : 'Notifications', icon: Bell },
+    { id: 'security', label: lang === 'ar' ? 'الأمان' : 'Security', icon: Shield },
+    { id: 'preferences', label: lang === 'ar' ? 'التفضيلات' : 'Preferences', icon: Palette },
+    { id: 'data', label: lang === 'ar' ? 'البيانات' : 'Data', icon: Database }
   ];
 
-  const handleSaveSettings = () => {
-    // Save settings logic here
-    toast.success('تم حفظ الإعدادات بنجاح');
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      // محاكاة حفظ الإعدادات
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success(lang === 'ar' ? 'تم حفظ الإعدادات بنجاح' : 'Settings saved successfully');
+    } catch (error) {
+      toast.error(lang === 'ar' ? 'فشل في حفظ الإعدادات' : 'Failed to save settings');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleExportData = () => {
-    // Export data logic here
-    toast.success('تم تصدير البيانات بنجاح');
+    const data = JSON.stringify(settings, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'settings-backup.json';
+    a.click();
+    toast.success(lang === 'ar' ? 'تم تصدير البيانات' : 'Data exported');
   };
 
-  const handleImportData = () => {
-    // Import data logic here
-    toast.success('تم استيراد البيانات بنجاح');
+  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedSettings = JSON.parse(e.target?.result as string);
+          setSettings(importedSettings);
+          toast.success(lang === 'ar' ? 'تم استيراد البيانات' : 'Data imported');
+        } catch (error) {
+          toast.error(lang === 'ar' ? 'فشل في استيراد البيانات' : 'Failed to import data');
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
-  const renderProfileSettings = () => (
+  const renderProfileTab = () => (
     <div className="space-y-6">
-      <div className="flex items-center space-x-6">
-        <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
-          {settings.profile.name.charAt(0)}
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold text-gray-800">{settings.profile.name}</h3>
-          <p className="text-gray-600">{settings.profile.position}</p>
-          <AnimatedButton variant="secondary" size="sm" className="mt-2">
-            تغيير الصورة
-          </AnimatedButton>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">الاسم الكامل</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {lang === 'ar' ? 'الاسم الكامل' : 'Full Name'}
+          </label>
           <input
             type="text"
-            value={settings.profile.name}
-            onChange={(e) => setSettings({
-              ...settings,
-              profile: { ...settings.profile, name: e.target.value }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            dir="rtl"
+            value={settings.profile.fullName}
+            onChange={(e) => setSettings(prev => ({
+              ...prev,
+              profile: { ...prev.profile, fullName: e.target.value }
+            }))}
+            className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
+            dir={lang === 'ar' ? 'rtl' : 'ltr'}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {lang === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+          </label>
           <input
             type="email"
             value={settings.profile.email}
-            onChange={(e) => setSettings({
-              ...settings,
-              profile: { ...settings.profile, email: e.target.value }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            onChange={(e) => setSettings(prev => ({
+              ...prev,
+              profile: { ...prev.profile, email: e.target.value }
+            }))}
+            className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
             dir="ltr"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">رقم الهاتف</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {lang === 'ar' ? 'رقم الهاتف' : 'Phone Number'}
+          </label>
           <input
             type="tel"
             value={settings.profile.phone}
-            onChange={(e) => setSettings({
-              ...settings,
-              profile: { ...settings.profile, phone: e.target.value }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            onChange={(e) => setSettings(prev => ({
+              ...prev,
+              profile: { ...prev.profile, phone: e.target.value }
+            }))}
+            className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
             dir="ltr"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">الشركة</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {lang === 'ar' ? 'اسم الشركة' : 'Company Name'}
+          </label>
           <input
             type="text"
             value={settings.profile.company}
-            onChange={(e) => setSettings({
-              ...settings,
-              profile: { ...settings.profile, company: e.target.value }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            dir="rtl"
+            onChange={(e) => setSettings(prev => ({
+              ...prev,
+              profile: { ...prev.profile, company: e.target.value }
+            }))}
+            className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
+            dir={lang === 'ar' ? 'rtl' : 'ltr'}
           />
         </div>
+      </div>
 
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">المنصب</label>
-          <input
-            type="text"
-            value={settings.profile.position}
-            onChange={(e) => setSettings({
-              ...settings,
-              profile: { ...settings.profile, position: e.target.value }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            dir="rtl"
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {lang === 'ar' ? 'المنصب' : 'Position'}
+        </label>
+        <input
+          type="text"
+          value={settings.profile.position}
+          onChange={(e) => setSettings(prev => ({
+            ...prev,
+            profile: { ...prev.profile, position: e.target.value }
+          }))}
+          className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
+          dir={lang === 'ar' ? 'rtl' : 'ltr'}
+        />
       </div>
     </div>
   );
 
-  const renderNotificationSettings = () => (
+  const renderNotificationsTab = () => (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800">إعدادات الإشعارات</h3>
-      
-      <div className="space-y-4">
-        {Object.entries(settings.notifications).map(([key, value]) => (
-          <div key={key} className="flex items-center justify-between p-4 bg-white/30 rounded-lg">
-            <div>
-              <h4 className="font-medium text-gray-800">
-                {key === 'emailNotifications' ? 'إشعارات البريد الإلكتروني' :
-                 key === 'smsNotifications' ? 'إشعارات الرسائل النصية' :
-                 key === 'projectUpdates' ? 'تحديثات المشاريع' :
-                 key === 'paymentReminders' ? 'تذكيرات الدفع' :
-                 key === 'systemAlerts' ? 'تنبيهات النظام' :
-                 'رسائل التسويق'}
-              </h4>
-              <p className="text-sm text-gray-600">
-                {key === 'emailNotifications' ? 'استقبال الإشعارات عبر البريد الإلكتروني' :
-                 key === 'smsNotifications' ? 'استقبال الإشعارات عبر الرسائل النصية' :
-                 key === 'projectUpdates' ? 'إشعارات حول تحديثات المشاريع' :
-                 key === 'paymentReminders' ? 'تذكيرات بمواعيد الدفع' :
-                 key === 'systemAlerts' ? 'تنبيهات النظام والأمان' :
-                 'رسائل ترويجية وتسويقية'}
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={value}
-                onChange={(e) => setSettings({
-                  ...settings,
-                  notifications: { ...settings.notifications, [key]: e.target.checked }
-                })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderSecuritySettings = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800">إعدادات الأمان</h3>
-      
-      <div className="space-y-4">
-        <div className="flex items-center justify-between p-4 bg-white/30 rounded-lg">
+      {Object.entries(settings.notifications).map(([key, value]) => (
+        <div key={key} className="flex items-center justify-between p-4 bg-white/20 rounded-xl">
           <div>
-            <h4 className="font-medium text-gray-800">المصادقة الثنائية</h4>
-            <p className="text-sm text-gray-600">تفعيل طبقة حماية إضافية لحسابك</p>
+            <h4 className="font-medium text-gray-800">
+              {key === 'emailNotifications' ? (lang === 'ar' ? 'إشعارات البريد الإلكتروني' : 'Email Notifications') :
+               key === 'smsNotifications' ? (lang === 'ar' ? 'إشعارات الرسائل النصية' : 'SMS Notifications') :
+               key === 'pushNotifications' ? (lang === 'ar' ? 'الإشعارات الفورية' : 'Push Notifications') :
+               key === 'marketUpdates' ? (lang === 'ar' ? 'تحديثات السوق' : 'Market Updates') :
+               (lang === 'ar' ? 'تنبيهات المشاريع' : 'Project Alerts')}
+            </h4>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.security.twoFactorAuth}
-              onChange={(e) => setSettings({
-                ...settings,
-                security: { ...settings.security, twoFactorAuth: e.target.checked }
-              })}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-        </div>
-
-        <div className="p-4 bg-white/30 rounded-lg">
-          <label className="block text-sm font-medium text-gray-700 mb-2">مهلة انتهاء الجلسة (دقيقة)</label>
-          <select
-            value={settings.security.sessionTimeout}
-            onChange={(e) => setSettings({
-              ...settings,
-              security: { ...settings.security, sessionTimeout: parseInt(e.target.value) }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          <button
+            onClick={() => setSettings(prev => ({
+              ...prev,
+              notifications: { ...prev.notifications, [key]: !value }
+            }))}
+            className={`relative w-12 h-6 rounded-full transition-colors ${
+              value ? 'bg-blue-500' : 'bg-gray-300'
+            }`}
           >
-            <option value={15}>15 دقيقة</option>
-            <option value={30}>30 دقيقة</option>
-            <option value={60}>60 دقيقة</option>
-            <option value={120}>120 دقيقة</option>
-          </select>
+            <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
+              value ? 'translate-x-6' : 'translate-x-0.5'
+            }`} />
+          </button>
         </div>
+      ))}
+    </div>
+  );
 
-        <div className="p-4 bg-white/30 rounded-lg">
-          <label className="block text-sm font-medium text-gray-700 mb-2">انتهاء صلاحية كلمة المرور (يوم)</label>
-          <select
-            value={settings.security.passwordExpiry}
-            onChange={(e) => setSettings({
-              ...settings,
-              security: { ...settings.security, passwordExpiry: parseInt(e.target.value) }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value={30}>30 يوم</option>
-            <option value={60}>60 يوم</option>
-            <option value={90}>90 يوم</option>
-            <option value={180}>180 يوم</option>
-          </select>
+  const renderSecurityTab = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between p-4 bg-white/20 rounded-xl">
+        <div>
+          <h4 className="font-medium text-gray-800">
+            {lang === 'ar' ? 'المصادقة الثنائية' : 'Two-Factor Authentication'}
+          </h4>
+          <p className="text-sm text-gray-600">
+            {lang === 'ar' ? 'حماية إضافية لحسابك' : 'Extra security for your account'}
+          </p>
         </div>
+        <button
+          onClick={() => setSettings(prev => ({
+            ...prev,
+            security: { ...prev.security, twoFactorAuth: !prev.security.twoFactorAuth }
+          }))}
+          className={`relative w-12 h-6 rounded-full transition-colors ${
+            settings.security.twoFactorAuth ? 'bg-blue-500' : 'bg-gray-300'
+          }`}
+        >
+          <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
+            settings.security.twoFactorAuth ? 'translate-x-6' : 'translate-x-0.5'
+          }`} />
+        </button>
+      </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {lang === 'ar' ? 'انتهاء الجلسة (دقيقة)' : 'Session Timeout (minutes)'}
+        </label>
+        <select
+          value={settings.security.sessionTimeout}
+          onChange={(e) => setSettings(prev => ({
+            ...prev,
+            security: { ...prev.security, sessionTimeout: Number(e.target.value) }
+          }))}
+          className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
+        >
+          <option value={15}>15</option>
+          <option value={30}>30</option>
+          <option value={60}>60</option>
+          <option value={120}>120</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {lang === 'ar' ? 'تغيير كلمة المرور' : 'Change Password'}
+        </label>
         <div className="space-y-3">
-          <AnimatedButton variant="warning" size="md" className="w-full">
-            تغيير كلمة المرور
-          </AnimatedButton>
-          <AnimatedButton variant="secondary" size="md" className="w-full">
-            تسجيل الخروج من جميع الأجهزة
-          </AnimatedButton>
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder={lang === 'ar' ? 'كلمة المرور الحالية' : 'Current Password'}
+              className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 pr-10"
+            />
+            <button
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <input
+            type="password"
+            placeholder={lang === 'ar' ? 'كلمة المرور الجديدة' : 'New Password'}
+            className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="password"
+            placeholder={lang === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
+            className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
+          />
         </div>
       </div>
     </div>
   );
 
-  const renderAppearanceSettings = () => (
+  const renderPreferencesTab = () => (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800">إعدادات المظهر</h3>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">المظهر</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {lang === 'ar' ? 'اللغة' : 'Language'}
+          </label>
           <select
-            value={settings.appearance.theme}
-            onChange={(e) => setSettings({
-              ...settings,
-              appearance: { ...settings.appearance, theme: e.target.value }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            dir="rtl"
-          >
-            <option value="light">فاتح</option>
-            <option value="dark">داكن</option>
-            <option value="auto">تلقائي</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">اللغة</label>
-          <select
-            value={settings.appearance.language}
-            onChange={(e) => setSettings({
-              ...settings,
-              appearance: { ...settings.appearance, language: e.target.value }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            dir="rtl"
+            value={lang}
+            onChange={(e) => setLang(e.target.value as Language)}
+            className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
           >
             <option value="ar">العربية</option>
             <option value="en">English</option>
@@ -321,32 +325,16 @@ export default function Settings() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">تنسيق التاريخ</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {lang === 'ar' ? 'العملة' : 'Currency'}
+          </label>
           <select
-            value={settings.appearance.dateFormat}
-            onChange={(e) => setSettings({
-              ...settings,
-              appearance: { ...settings.appearance, dateFormat: e.target.value }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            dir="rtl"
-          >
-            <option value="dd/mm/yyyy">يوم/شهر/سنة</option>
-            <option value="mm/dd/yyyy">شهر/يوم/سنة</option>
-            <option value="yyyy-mm-dd">سنة-شهر-يوم</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">العملة</label>
-          <select
-            value={settings.appearance.currency}
-            onChange={(e) => setSettings({
-              ...settings,
-              appearance: { ...settings.appearance, currency: e.target.value }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            dir="rtl"
+            value={settings.preferences.currency}
+            onChange={(e) => setSettings(prev => ({
+              ...prev,
+              preferences: { ...prev.preferences, currency: e.target.value }
+            }))}
+            className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
           >
             <option value="SAR">ريال سعودي (SAR)</option>
             <option value="USD">دولار أمريكي (USD)</option>
@@ -354,186 +342,188 @@ export default function Settings() {
           </select>
         </div>
 
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">المنطقة الزمنية</label>
-          <select
-            value={settings.appearance.timezone}
-            onChange={(e) => setSettings({
-              ...settings,
-              appearance: { ...settings.appearance, timezone: e.target.value }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            dir="rtl"
-          >
-            <option value="Asia/Riyadh">الرياض (GMT+3)</option>
-            <option value="Asia/Dubai">دبي (GMT+4)</option>
-            <option value="Europe/London">لندن (GMT+0)</option>
-            <option value="America/New_York">نيويورك (GMT-5)</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderSystemSettings = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800">إعدادات النظام</h3>
-      
-      <div className="space-y-4">
-        <div className="flex items-center justify-between p-4 bg-white/30 rounded-lg">
-          <div>
-            <h4 className="font-medium text-gray-800">الحفظ التلقائي</h4>
-            <p className="text-sm text-gray-600">حفظ التغييرات تلقائياً أثناء العمل</p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.system.autoSave}
-              onChange={(e) => setSettings({
-                ...settings,
-                system: { ...settings.system, autoSave: e.target.checked }
-              })}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {lang === 'ar' ? 'تنسيق التاريخ' : 'Date Format'}
           </label>
-        </div>
-
-        <div className="p-4 bg-white/30 rounded-lg">
-          <label className="block text-sm font-medium text-gray-700 mb-2">تكرار النسخ الاحتياطي</label>
           <select
-            value={settings.system.backupFrequency}
-            onChange={(e) => setSettings({
-              ...settings,
-              system: { ...settings.system, backupFrequency: e.target.value }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            dir="rtl"
+            value={settings.preferences.dateFormat}
+            onChange={(e) => setSettings(prev => ({
+              ...prev,
+              preferences: { ...prev.preferences, dateFormat: e.target.value }
+            }))}
+            className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
           >
-            <option value="daily">يومي</option>
-            <option value="weekly">أسبوعي</option>
-            <option value="monthly">شهري</option>
+            <option value="dd/mm/yyyy">DD/MM/YYYY</option>
+            <option value="mm/dd/yyyy">MM/DD/YYYY</option>
+            <option value="yyyy-mm-dd">YYYY-MM-DD</option>
           </select>
         </div>
 
-        <div className="p-4 bg-white/30 rounded-lg">
-          <label className="block text-sm font-medium text-gray-700 mb-2">مدة الاحتفاظ بالبيانات (يوم)</label>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {lang === 'ar' ? 'تنسيق الوقت' : 'Time Format'}
+          </label>
           <select
-            value={settings.system.dataRetention}
-            onChange={(e) => setSettings({
-              ...settings,
-              system: { ...settings.system, dataRetention: parseInt(e.target.value) }
-            })}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            dir="rtl"
+            value={settings.preferences.timeFormat}
+            onChange={(e) => setSettings(prev => ({
+              ...prev,
+              preferences: { ...prev.preferences, timeFormat: e.target.value }
+            }))}
+            className="w-full p-3 bg-white/50 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500"
           >
-            <option value={90}>90 يوم</option>
-            <option value={180}>180 يوم</option>
-            <option value={365}>سنة واحدة</option>
-            <option value={730}>سنتان</option>
+            <option value="24h">24 ساعة</option>
+            <option value="12h">12 ساعة</option>
           </select>
         </div>
+      </div>
 
-        <div className="space-y-3">
-          <AnimatedButton 
-            onClick={handleExportData}
-            variant="secondary" 
-            size="md" 
-            className="w-full"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            تصدير البيانات
-          </AnimatedButton>
-          
-          <AnimatedButton 
-            onClick={handleImportData}
-            variant="secondary" 
-            size="md" 
-            className="w-full"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            استيراد البيانات
-          </AnimatedButton>
-          
-          <AnimatedButton 
-            variant="warning" 
-            size="md" 
-            className="w-full"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            إعادة تعيين النظام
-          </AnimatedButton>
+      <div className="flex items-center justify-between p-4 bg-white/20 rounded-xl">
+        <div>
+          <h4 className="font-medium text-gray-800">
+            {lang === 'ar' ? 'الحفظ التلقائي' : 'Auto Save'}
+          </h4>
+          <p className="text-sm text-gray-600">
+            {lang === 'ar' ? 'حفظ التغييرات تلقائياً' : 'Save changes automatically'}
+          </p>
         </div>
+        <button
+          onClick={() => setSettings(prev => ({
+            ...prev,
+            preferences: { ...prev.preferences, autoSave: !prev.preferences.autoSave }
+          }))}
+          className={`relative w-12 h-6 rounded-full transition-colors ${
+            settings.preferences.autoSave ? 'bg-blue-500' : 'bg-gray-300'
+          }`}
+        >
+          <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
+            settings.preferences.autoSave ? 'translate-x-6' : 'translate-x-0.5'
+          }`} />
+        </button>
       </div>
     </div>
   );
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'profile': return renderProfileSettings();
-      case 'notifications': return renderNotificationSettings();
-      case 'security': return renderSecuritySettings();
-      case 'appearance': return renderAppearanceSettings();
-      case 'system': return renderSystemSettings();
-      default: return renderProfileSettings();
-    }
-  };
+  const renderDataTab = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AnimatedButton
+          onClick={handleExportData}
+          variant="primary"
+          size="lg"
+          className="w-full"
+        >
+          <Download className="w-5 h-5 mr-2" />
+          {lang === 'ar' ? 'تصدير البيانات' : 'Export Data'}
+        </AnimatedButton>
+
+        <div className="relative">
+          <input
+            type="file"
+            accept=".json"
+            onChange={handleImportData}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+          <AnimatedButton
+            variant="secondary"
+            size="lg"
+            className="w-full pointer-events-none"
+          >
+            <Upload className="w-5 h-5 mr-2" />
+            {lang === 'ar' ? 'استيراد البيانات' : 'Import Data'}
+          </AnimatedButton>
+        </div>
+      </div>
+
+      <div className="bg-red-50/50 border border-red-200 rounded-xl p-4">
+        <h4 className="font-medium text-red-800 mb-2">
+          {lang === 'ar' ? 'منطقة الخطر' : 'Danger Zone'}
+        </h4>
+        <p className="text-sm text-red-600 mb-4">
+          {lang === 'ar' ? 'هذه الإجراءات لا يمكن التراجع عنها' : 'These actions cannot be undone'}
+        </p>
+        <AnimatedButton
+          onClick={() => {
+            if (confirm(lang === 'ar' ? 'هل أنت متأكد من حذف جميع البيانات؟' : 'Are you sure you want to delete all data?')) {
+              toast.success(lang === 'ar' ? 'تم حذف البيانات' : 'Data deleted');
+            }
+          }}
+          variant="danger"
+          size="md"
+        >
+          <Trash2 className="w-4 h-4 mr-2" />
+          {lang === 'ar' ? 'حذف جميع البيانات' : 'Delete All Data'}
+        </AnimatedButton>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-            <SettingsIcon className="w-8 h-8 mr-3 text-gray-600" />
-            الإعدادات
-          </h1>
-          <p className="text-gray-600 mt-2">إدارة إعدادات الحساب والنظام</p>
+        <div className="flex items-center">
+          <SettingsIcon className="w-8 h-8 text-gray-600 mr-3" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">
+              {lang === 'ar' ? 'الإعدادات' : 'Settings'}
+            </h1>
+            <p className="text-gray-600">
+              {lang === 'ar' ? 'إدارة إعدادات حسابك وتفضيلاتك' : 'Manage your account settings and preferences'}
+            </p>
+          </div>
         </div>
-        
+
         <AnimatedButton
-          onClick={handleSaveSettings}
+          onClick={handleSave}
+          loading={isLoading}
           variant="primary"
           size="lg"
         >
           <Save className="w-5 h-5 mr-2" />
-          حفظ التغييرات
+          {lang === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
         </AnimatedButton>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar */}
         <div className="lg:col-span-1">
           <GlassCard className="p-4">
             <nav className="space-y-2">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                    activeTab === tab.id
-                      ? 'bg-blue-100 text-blue-700 font-medium'
-                      : 'text-gray-600 hover:bg-white/30'
-                  }`}
-                >
-                  <tab.icon className="w-5 h-5" />
-                  <span>{tab.label}</span>
-                </button>
-              ))}
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${
+                      activeTab === tab.id
+                        ? 'bg-blue-500 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-white/50'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5 mr-3" />
+                    <span className="font-medium">{tab.label}</span>
+                  </button>
+                );
+              })}
             </nav>
           </GlassCard>
         </div>
 
         {/* Content */}
         <div className="lg:col-span-3">
-          <GlassCard className="p-8">
+          <GlassCard className="p-6">
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {renderContent()}
+              {activeTab === 'profile' && renderProfileTab()}
+              {activeTab === 'notifications' && renderNotificationsTab()}
+              {activeTab === 'security' && renderSecurityTab()}
+              {activeTab === 'preferences' && renderPreferencesTab()}
+              {activeTab === 'data' && renderDataTab()}
             </motion.div>
           </GlassCard>
         </div>

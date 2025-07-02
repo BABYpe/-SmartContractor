@@ -1,0 +1,16 @@
+# Redirects for SPA
+/*    /index.html   200
+
+# SEO Redirects
+/home    /    301
+/app     /    301
+
+# Language redirects
+/ar/*    /:splat    301
+/en/*    /en/:splat    301
+
+# API redirects (if needed)
+/api/*   https://api.smartcontractor.com/:splat   200
+
+# Force HTTPS
+http://smartcontractor-pro.netlify.app/*    https://smartcontractor-pro.netlify.app/:splat    301!

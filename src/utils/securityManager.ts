@@ -1,16 +1,8 @@
-// مدير الأمان والحماية المتقدم
-export class SecurityManager {
+// Security Manager for handling data encryption and error management
+class SecurityManager {
   private static instance: SecurityManager;
-  private encryptionKey: string;
-  private sessionToken: string;
-  private errorHandlers: Map<string, Function> = new Map();
 
-  private constructor() {
-    this.encryptionKey = this.generateEncryptionKey();
-    this.sessionToken = this.generateSessionToken();
-    this.initializeErrorHandling();
-    this.setupSecurityHeaders();
-  }
+  private constructor() {}
 
   static getInstance(): SecurityManager {
     if (!SecurityManager.instance) {
@@ -19,186 +11,183 @@ export class SecurityManager {
     return SecurityManager.instance;
   }
 
-  // توليد مفتاح التشفير
-  private generateEncryptionKey(): string {
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-  }
-
-  // توليد رمز الجلسة
-  private generateSessionToken(): string {
-    const timestamp = Date.now().toString();
-    const random = Math.random().toString(36).substring(2);
-    return btoa(`${timestamp}-${random}`);
-  }
-
-  // تشفير البيانات الحساسة
+  // Encrypt sensitive data (placeholder implementation)
   encryptData(data: any): string {
     try {
-      const jsonString = JSON.stringify(data);
-      const encoded = btoa(jsonString);
-      return this.obfuscateString(encoded);
+      // In a real implementation, this would use proper encryption
+      // For now, we'll just stringify the data
+      return btoa(JSON.stringify(data));
     } catch (error) {
-      this.handleError('encryption_error', error);
-      return '';
+      console.error('Encryption failed:', error);
+      return JSON.stringify(data);
     }
   }
 
-  // فك تشفير البيانات
+  // Decrypt data (placeholder implementation)
   decryptData(encryptedData: string): any {
     try {
-      const deobfuscated = this.deobfuscateString(encryptedData);
-      const decoded = atob(deobfuscated);
-      return JSON.parse(decoded);
+      // In a real implementation, this would use proper decryption
+      return JSON.parse(atob(encryptedData));
     } catch (error) {
-      this.handleError('decryption_error', error);
+      console.error('Decryption failed:', error);
       return null;
     }
   }
 
-  // تشويش النصوص
-  private obfuscateString(str: string): string {
-    return str.split('').map((char, index) => {
-      const code = char.charCodeAt(0);
-      const shift = (index % 5) + 1;
-      return String.fromCharCode(code + shift);
-    }).join('');
+  // Handle and log errors securely
+  handleError(context: string, error: any): void {
+    try {
+      // Log error without exposing sensitive information
+      const sanitizedError = {
+        context,
+        message: error?.message || 'Unknown error',
+        timestamp: new Date().toISOString(),
+        type: error?.name || 'Error'
+      };
+
+      console.error('Security Manager Error:', sanitizedError);
+
+      // In a real implementation, this would send to a secure logging service
+      // For now, we'll just log to console
+    } catch (loggingError) {
+      console.error('Failed to log error:', loggingError);
+    }
   }
 
-  // إلغاء تشويش النصوص
-  private deobfuscateString(str: string): string {
-    return str.split('').map((char, index) => {
-      const code = char.charCodeAt(0);
-      const shift = (index % 5) + 1;
-      return String.fromCharCode(code - shift);
-    }).join('');
-  }
-
-  // إعداد رؤوس الأمان
-  private setupSecurityHeaders(): void {
-    if (typeof document !== 'undefined') {
-      // منع النقر المتعدد السريع
-      document.addEventListener('click', this.preventRapidClicks.bind(this));
-      
-      // منع النسخ في الإنتاج
-      if (import.meta.env.PROD) {
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
-        document.addEventListener('selectstart', (e) => e.preventDefault());
-        document.addEventListener('dragstart', (e) => e.preventDefault());
+  // Validate input data
+  validateInput(data: any, rules: Record<string, any> = {}): boolean {
+    try {
+      // Basic validation - in real implementation would be more comprehensive
+      if (data === null || data === undefined) {
+        return false;
       }
-    }
-  }
 
-  // منع النقر السريع المتعدد
-  private lastClickTime = 0;
-  private preventRapidClicks(event: Event): void {
-    const now = Date.now();
-    if (now - this.lastClickTime < 300) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-    this.lastClickTime = now;
-  }
+      // Apply custom validation rules if provided
+      for (const [key, rule] of Object.entries(rules)) {
+        if (rule.required && !data[key]) {
+          return false;
+        }
+        if (rule.type && typeof data[key] !== rule.type) {
+          return false;
+        }
+      }
 
-  // تهيئة معالجة الأخطاء التلقائية
-  private initializeErrorHandling(): void {
-    // معالج الأخطاء العام
-    window.addEventListener('error', (event) => {
-      this.handleError('global_error', event.error);
-    });
-
-    // معالج أخطاء الوعود
-    window.addEventListener('unhandledrejection', (event) => {
-      this.handleError('promise_rejection', event.reason);
-      event.preventDefault();
-    });
-
-    // معالج أخطاء الشبكة
-    this.errorHandlers.set('network_error', this.handleNetworkError.bind(this));
-    this.errorHandlers.set('api_error', this.handleApiError.bind(this));
-    this.errorHandlers.set('validation_error', this.handleValidationError.bind(this));
-  }
-
-  // معالجة الأخطاء التلقائية
-  handleError(type: string, error: any): void {
-    const handler = this.errorHandlers.get(type);
-    if (handler) {
-      handler(error);
-    } else {
-      this.logError(type, error);
-    }
-  }
-
-  // معالجة أخطاء الشبكة
-  private handleNetworkError(error: any): void {
-    console.warn('Network error handled automatically:', error);
-    // إعادة المحاولة التلقائية
-    setTimeout(() => {
-      window.location.reload();
-    }, 5000);
-  }
-
-  // معالجة أخطاء API
-  private handleApiError(error: any): void {
-    console.warn('API error handled automatically:', error);
-    // التبديل إلى البيانات المحاكاة
-    this.enableFallbackMode();
-  }
-
-  // معالجة أخطاء التحقق
-  private handleValidationError(error: any): void {
-    console.warn('Validation error handled automatically:', error);
-    // تصحيح البيانات تلقائياً
-    this.autoCorrectData(error);
-  }
-
-  // تسجيل الأخطاء
-  private logError(type: string, error: any): void {
-    const errorLog = {
-      type,
-      message: error?.message || 'Unknown error',
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-      sessionToken: this.sessionToken
-    };
-
-    // تشفير وحفظ السجل محلياً
-    const encryptedLog = this.encryptData(errorLog);
-    localStorage.setItem(`error_${Date.now()}`, encryptedLog);
-  }
-
-  // تفعيل وضع الاحتياط
-  private enableFallbackMode(): void {
-    sessionStorage.setItem('fallback_mode', 'true');
-  }
-
-  // التصحيح التلقائي للبيانات
-  private autoCorrectData(error: any): void {
-    // تنفيذ منطق التصحيح التلقائي
-    console.log('Auto-correcting data:', error);
-  }
-
-  // فحص الأمان
-  validateSession(): boolean {
-    const sessionStart = sessionStorage.getItem('session_start');
-    if (!sessionStart) {
-      sessionStorage.setItem('session_start', Date.now().toString());
       return true;
+    } catch (error) {
+      this.handleError('input_validation', error);
+      return false;
     }
-
-    const elapsed = Date.now() - parseInt(sessionStart);
-    return elapsed < 24 * 60 * 60 * 1000; // 24 ساعة
   }
 
-  // تنظيف البيانات الحساسة
-  cleanup(): void {
-    this.encryptionKey = '';
-    this.sessionToken = '';
-    this.errorHandlers.clear();
+  // Sanitize data for safe output
+  sanitizeData(data: any): any {
+    try {
+      if (typeof data === 'string') {
+        // Basic HTML/script sanitization
+        return data
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#x27;')
+          .replace(/\//g, '&#x2F;');
+      }
+
+      if (typeof data === 'object' && data !== null) {
+        const sanitized: any = Array.isArray(data) ? [] : {};
+        for (const [key, value] of Object.entries(data)) {
+          sanitized[key] = this.sanitizeData(value);
+        }
+        return sanitized;
+      }
+
+      return data;
+    } catch (error) {
+      this.handleError('data_sanitization', error);
+      return data;
+    }
+  }
+
+  // Generate secure random tokens
+  generateToken(length: number = 32): string {
+    try {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      
+      if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        const array = new Uint8Array(length);
+        crypto.getRandomValues(array);
+        for (let i = 0; i < length; i++) {
+          result += chars[array[i] % chars.length];
+        }
+      } else {
+        // Fallback for environments without crypto API
+        for (let i = 0; i < length; i++) {
+          result += chars[Math.floor(Math.random() * chars.length)];
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      this.handleError('token_generation', error);
+      return Math.random().toString(36).substring(2, 15);
+    }
+  }
+
+  // Check if environment is secure (HTTPS)
+  isSecureEnvironment(): boolean {
+    try {
+      return typeof window !== 'undefined' && 
+             (window.location.protocol === 'https:' || 
+              window.location.hostname === 'localhost' ||
+              window.location.hostname === '127.0.0.1');
+    } catch (error) {
+      this.handleError('environment_check', error);
+      return false;
+    }
+  }
+
+  // Rate limiting helper
+  private rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+  checkRateLimit(identifier: string, maxRequests: number = 10, windowMs: number = 60000): boolean {
+    try {
+      const now = Date.now();
+      const record = this.rateLimitMap.get(identifier);
+
+      if (!record || now > record.resetTime) {
+        this.rateLimitMap.set(identifier, { count: 1, resetTime: now + windowMs });
+        return true;
+      }
+
+      if (record.count >= maxRequests) {
+        return false;
+      }
+
+      record.count++;
+      return true;
+    } catch (error) {
+      this.handleError('rate_limit_check', error);
+      return true; // Allow on error to prevent blocking legitimate requests
+    }
+  }
+
+  // Clean up rate limit records periodically
+  cleanupRateLimits(): void {
+    try {
+      const now = Date.now();
+      for (const [key, record] of this.rateLimitMap.entries()) {
+        if (now > record.resetTime) {
+          this.rateLimitMap.delete(key);
+        }
+      }
+    } catch (error) {
+      this.handleError('rate_limit_cleanup', error);
+    }
   }
 }
 
+// Export singleton instance
 export const securityManager = SecurityManager.getInstance();
+
+// Export class for testing purposes
+export { SecurityManager };

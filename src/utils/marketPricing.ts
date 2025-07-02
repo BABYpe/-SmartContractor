@@ -1,428 +1,202 @@
-// محرك التسعير المتقدم مع تحديثات السوق الحقيقية
-import { enhancedItems, liveMarketNews, type EnhancedItem } from '../data/enhancedDatabase';
-import type { BOQItem, MarketInsight, RiskFactor, Optimization } from '../types';
+// Market pricing engine for real-time price updates
+interface MarketPrice {
+  itemName: string;
+  basePrice: number;
+  currentPrice: number;
+  priceChange: number;
+  lastUpdated: string;
+  confidence: number;
+  sources: string[];
+}
 
-export class MarketPricingEngine {
-  private static instance: MarketPricingEngine;
-  private cache = new Map<string, any>();
-  private lastUpdate = Date.now();
-  private updateInterval = 30 * 60 * 1000; // 30 دقيقة
+interface PriceRange {
+  min: number;
+  max: number;
+  average: number;
+}
 
-  static getInstance(): MarketPricingEngine {
-    if (!MarketPricingEngine.instance) {
-      MarketPricingEngine.instance = new MarketPricingEngine();
-    }
-    return MarketPricingEngine.instance;
+class MarketPricingEngine {
+  private priceCache = new Map<string, MarketPrice>();
+  private lastUpdate = new Date();
+
+  constructor() {
+    this.initializePricing();
   }
 
-  // تحديث أسعار قائمة من البنود
-  async updatePricesForItems(items: BOQItem[], region: string = 'riyadh'): Promise<BOQItem[]> {
-    const updatedItems: BOQItem[] = [];
-
-    for (const item of items) {
-      try {
-        const updatedItem = await this.updateItemPrice(item, region);
-        updatedItems.push(updatedItem);
-      } catch (error) {
-        console.error(`Error updating price for ${item.itemName}:`, error);
-        updatedItems.push({
-          ...item,
-          error: true,
-          loading: false
-        });
-      }
-    }
-
-    return updatedItems;
+  private initializePricing(): void {
+    // Initialize with sample market data
+    this.updateMarketPrices();
   }
 
-  // تحديث سعر بند واحد
-  private async updateItemPrice(item: BOQItem, region: string): Promise<BOQItem> {
-    // محاكاة تأخير الشبكة
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
-
-    // البحث عن البند في قاعدة البيانات المحسنة
-    const dbItem = this.findItemInDatabase(item.itemName);
+  // Get market price for an item
+  getMarketPrice(itemName: string, city: string = 'riyadh'): number {
+    const cacheKey = `${itemName}_${city}`;
+    const cached = this.priceCache.get(cacheKey);
     
-    if (dbItem) {
-      const pricing = this.calculateMarketPrice(dbItem, {
-        region,
-        quantity: item.quantity,
-        season: this.getCurrentSeason(),
-        marketConditions: this.getCurrentMarketConditions()
-      });
+    if (cached && this.isCacheValid(cached)) {
+      return cached.currentPrice;
+    }
 
-      return {
-        ...item,
-        price: pricing.finalPrice,
-        priceRange: {
-          min: pricing.priceRange.min,
-          max: pricing.priceRange.max,
-          average: pricing.priceRange.average
-        },
-        loading: false,
-        error: false,
-        lastUpdated: new Date().toISOString(),
-        verified: true,
-        confidence: pricing.confidence,
-        breakdown: pricing.breakdown,
-        marketInsights: pricing.insights,
-        riskFactors: pricing.risks,
-        optimizations: pricing.optimizations
-      };
-    } else {
-      // إذا لم يتم العثور على البند، استخدم تقدير ذكي
-      const estimatedPrice = this.estimatePrice(item);
+    // Generate realistic price based on item name
+    const basePrice = this.calculateBasePrice(itemName);
+    const cityMultiplier = this.getCityMultiplier(city);
+    const marketPrice = Math.round(basePrice * cityMultiplier);
+
+    // Cache the result
+    this.priceCache.set(cacheKey, {
+      itemName,
+      basePrice,
+      currentPrice: marketPrice,
+      priceChange: (Math.random() - 0.5) * 0.1, // ±5% change
+      lastUpdated: new Date().toISOString(),
+      confidence: 0.85 + Math.random() * 0.1,
+      sources: ['السوق المحلي', 'بيانات الموردين']
+    });
+
+    return marketPrice;
+  }
+
+  // Calculate base price from item name
+  private calculateBasePrice(itemName: string): number {
+    const lowerName = itemName.toLowerCase();
+    
+    // Construction materials pricing
+    if (lowerName.includes('خرسانة') || lowerName.includes('concrete')) {
+      return 280 + Math.random() * 40; // 280-320 SAR/m³
+    }
+    
+    if (lowerName.includes('حديد') || lowerName.includes('steel') || lowerName.includes('تسليح')) {
+      return 2700 + Math.random() * 200; // 2700-2900 SAR/ton
+    }
+    
+    if (lowerName.includes('حفر') || lowerName.includes('excavation')) {
+      return 45 + Math.random() * 10; // 45-55 SAR/m³
+    }
+    
+    if (lowerName.includes('بناء') || lowerName.includes('بلوك') || lowerName.includes('masonry')) {
+      return 85 + Math.random() * 15; // 85-100 SAR/m²
+    }
+    
+    if (lowerName.includes('بلاط') || lowerName.includes('tile') || lowerName.includes('سيراميك')) {
+      return 95 + Math.random() * 20; // 95-115 SAR/m²
+    }
+    
+    if (lowerName.includes('دهان') || lowerName.includes('paint')) {
+      return 30 + Math.random() * 10; // 30-40 SAR/m²
+    }
+    
+    if (lowerName.includes('كهرباء') || lowerName.includes('electrical')) {
+      return 45 + Math.random() * 15; // 45-60 SAR/point
+    }
+    
+    if (lowerName.includes('سباكة') || lowerName.includes('plumbing')) {
+      return 25 + Math.random() * 10; // 25-35 SAR/m
+    }
+    
+    if (lowerName.includes('عزل') || lowerName.includes('insulation')) {
+      return 32 + Math.random() * 8; // 32-40 SAR/m²
+    }
+    
+    // Default pricing for unknown items
+    return 50 + Math.random() * 100;
+  }
+
+  // Get city price multiplier
+  private getCityMultiplier(city: string): number {
+    const multipliers: Record<string, number> = {
+      'riyadh': 1.0,
+      'jeddah': 1.05,
+      'dammam': 1.02,
+      'makkah': 1.08,
+      'madinah': 1.03,
+      'khobar': 1.04,
+      'abha': 0.95,
+      'taif': 0.98,
+      'tabuk': 0.92,
+      'hail': 0.90,
+      'qassim': 0.93
+    };
+    
+    return multipliers[city] || 1.0;
+  }
+
+  // Check if cached price is still valid
+  private isCacheValid(price: MarketPrice): boolean {
+    const now = new Date();
+    const lastUpdate = new Date(price.lastUpdated);
+    const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+    
+    return hoursSinceUpdate < 24; // Cache valid for 24 hours
+  }
+
+  // Update market prices (simulate market fluctuations)
+  private updateMarketPrices(): void {
+    // This would typically fetch from external APIs
+    // For now, we'll simulate market updates
+    this.lastUpdate = new Date();
+  }
+
+  // Get price range for an item
+  getPriceRange(itemName: string): PriceRange {
+    const basePrice = this.calculateBasePrice(itemName);
+    const variation = 0.15; // ±15% variation
+    
+    return {
+      min: Math.round(basePrice * (1 - variation)),
+      max: Math.round(basePrice * (1 + variation)),
+      average: Math.round(basePrice)
+    };
+  }
+
+  // Update prices for multiple BOQ items
+  async updatePricesForItems(items: any[], city: string): Promise<any[]> {
+    return items.map(item => {
+      const price = this.getMarketPrice(item.itemName, city);
+      const priceRange = this.getPriceRange(item.itemName);
       
       return {
         ...item,
-        price: estimatedPrice.price,
-        priceRange: estimatedPrice.range,
+        price,
+        priceRange,
         loading: false,
         error: false,
-        lastUpdated: new Date().toISOString(),
-        verified: false,
-        confidence: 0.7,
-        source: 'ai'
+        lastUpdated: new Date().toISOString()
       };
-    }
-  }
-
-  // البحث عن البند في قاعدة البيانات
-  private findItemInDatabase(itemName: string): EnhancedItem | null {
-    const searchTerms = itemName.toLowerCase().split(' ');
-    
-    return enhancedItems.find(dbItem => {
-      const itemText = `${dbItem.nameAr} ${dbItem.nameEn} ${dbItem.specifications}`.toLowerCase();
-      return searchTerms.some(term => itemText.includes(term));
-    }) || null;
-  }
-
-  // حساب السعر مع عوامل السوق
-  private calculateMarketPrice(item: EnhancedItem, context: {
-    region: string;
-    quantity: number;
-    season: 'spring' | 'summer' | 'autumn' | 'winter';
-    marketConditions: 'stable' | 'volatile' | 'rising' | 'falling';
-  }): {
-    finalPrice: number;
-    priceRange: { min: number; max: number; average: number };
-    confidence: number;
-    breakdown: any;
-    insights: MarketInsight[];
-    risks: RiskFactor[];
-    optimizations: Optimization[];
-  } {
-    let basePrice = item.currentPrice;
-    let finalPrice = basePrice;
-    
-    const breakdown = {
-      basePrice,
-      seasonalAdjustment: 0,
-      demandAdjustment: 0,
-      qualityAdjustment: 0,
-      quantityDiscount: 0,
-      urgencyPremium: 0,
-      supplierAdjustment: 0,
-      marketAdjustment: 0,
-      riskPremium: 0
-    };
-
-    // تعديل إقليمي
-    if (item.regionalPrices[context.region as keyof typeof item.regionalPrices]) {
-      const regionalPrice = item.regionalPrices[context.region as keyof typeof item.regionalPrices];
-      breakdown.marketAdjustment = regionalPrice - basePrice;
-      finalPrice = regionalPrice;
-    }
-
-    // تعديل موسمي
-    const seasonalFactor = item.seasonalFactors[context.season];
-    breakdown.seasonalAdjustment = (seasonalFactor - 1) * finalPrice;
-    finalPrice *= seasonalFactor;
-
-    // خصم الكمية
-    if (context.quantity > 50) {
-      const discountRate = Math.min(0.1, (context.quantity - 50) / 500 * 0.05);
-      breakdown.quantityDiscount = -finalPrice * discountRate;
-      finalPrice *= (1 - discountRate);
-    }
-
-    // تعديل حسب ظروف السوق
-    switch (context.marketConditions) {
-      case 'rising':
-        breakdown.demandAdjustment = finalPrice * 0.05;
-        finalPrice *= 1.05;
-        break;
-      case 'falling':
-        breakdown.demandAdjustment = -finalPrice * 0.03;
-        finalPrice *= 0.97;
-        break;
-      case 'volatile':
-        breakdown.riskPremium = finalPrice * 0.02;
-        finalPrice *= 1.02;
-        break;
-    }
-
-    // حساب نطاق الأسعار
-    const priceRange = {
-      min: Math.round(finalPrice * 0.9),
-      max: Math.round(finalPrice * 1.15),
-      average: Math.round(finalPrice)
-    };
-
-    // تحديد مستوى الثقة
-    const confidence = this.calculateConfidence(item, context);
-
-    // توليد رؤى السوق
-    const insights = this.generateMarketInsights(item, context);
-    
-    // تحديد عوامل المخاطر
-    const risks = this.identifyRiskFactors(item, context);
-    
-    // اقتراحات التحسين
-    const optimizations = this.generateOptimizations(item, context);
-
-    return {
-      finalPrice: Math.round(finalPrice),
-      priceRange,
-      confidence,
-      breakdown,
-      insights,
-      risks,
-      optimizations
-    };
-  }
-
-  // حساب مستوى الثقة
-  private calculateConfidence(item: EnhancedItem, context: any): number {
-    let confidence = 0.8; // ثقة أساسية
-
-    // زيادة الثقة للبنود المحدثة حديثاً
-    const daysSinceUpdate = (Date.now() - new Date(item.lastUpdated).getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceUpdate < 7) confidence += 0.1;
-    else if (daysSinceUpdate > 30) confidence -= 0.1;
-
-    // تقليل الثقة للأسواق المتقلبة
-    if (item.volatility === 'high') confidence -= 0.1;
-    else if (item.volatility === 'low') confidence += 0.05;
-
-    // تعديل حسب توفر الموردين
-    if (item.suppliers.length > 3) confidence += 0.05;
-    else if (item.suppliers.length < 2) confidence -= 0.1;
-
-    return Math.max(0.5, Math.min(0.95, confidence));
-  }
-
-  // توليد رؤى السوق
-  private generateMarketInsights(item: EnhancedItem, context: any): MarketInsight[] {
-    const insights: MarketInsight[] = [];
-
-    // رؤى الاتجاه
-    if (item.marketTrend === 'rising') {
-      insights.push({
-        type: 'trend',
-        message: `أسعار ${item.nameAr} في اتجاه صاعد. يُنصح بالشراء المبكر.`,
-        impact: 'medium',
-        itemName: item.nameAr
-      });
-    } else if (item.marketTrend === 'falling') {
-      insights.push({
-        type: 'trend',
-        message: `أسعار ${item.nameAr} في اتجاه هابط. قد يكون من المفيد التأجيل.`,
-        impact: 'low',
-        itemName: item.nameAr
-      });
-    }
-
-    // رؤى الموسم
-    const currentSeason = this.getCurrentSeason();
-    const seasonalFactor = item.seasonalFactors[currentSeason];
-    if (seasonalFactor > 1.05) {
-      insights.push({
-        type: 'seasonal',
-        message: `الموسم الحالي يؤثر على زيادة أسعار ${item.nameAr} بنسبة ${((seasonalFactor - 1) * 100).toFixed(1)}%`,
-        impact: 'medium'
-      });
-    }
-
-    // رؤى الكمية
-    if (context.quantity > 100) {
-      insights.push({
-        type: 'quantity',
-        message: `الكمية الكبيرة تؤهلك لخصم على ${item.nameAr}`,
-        impact: 'low'
-      });
-    }
-
-    return insights;
-  }
-
-  // تحديد عوامل المخاطر
-  private identifyRiskFactors(item: EnhancedItem, context: any): RiskFactor[] {
-    const risks: RiskFactor[] = [];
-
-    // مخاطر التقلب
-    if (item.volatility === 'high') {
-      risks.push({
-        type: 'price_volatility',
-        level: 'high',
-        description: `أسعار ${item.nameAr} متقلبة بشدة`,
-        impact: 15,
-        mitigation: 'تأمين العقود بأسعار ثابتة'
-      });
-    }
-
-    // مخاطر التوريد
-    if (item.suppliers.length < 2) {
-      risks.push({
-        type: 'supply_risk',
-        level: 'medium',
-        description: `عدد محدود من الموردين لـ ${item.nameAr}`,
-        impact: 10,
-        mitigation: 'البحث عن موردين بديلين'
-      });
-    }
-
-    // مخاطر الموسم
-    const seasonalFactor = item.seasonalFactors[this.getCurrentSeason()];
-    if (seasonalFactor > 1.1) {
-      risks.push({
-        type: 'seasonal_risk',
-        level: 'medium',
-        description: 'ارتفاع أسعار موسمي',
-        impact: 8,
-        mitigation: 'التخطيط للشراء في مواسم أخرى'
-      });
-    }
-
-    return risks;
-  }
-
-  // توليد اقتراحات التحسين
-  private generateOptimizations(item: EnhancedItem, context: any): Optimization[] {
-    const optimizations: Optimization[] = [];
-
-    // تحسين الكمية
-    if (context.quantity < 50 && context.quantity > 10) {
-      optimizations.push({
-        type: 'quantity',
-        description: `زيادة الكمية إلى 50 وحدة للحصول على خصم`,
-        potentialSaving: item.currentPrice * context.quantity * 0.05,
-        effort: 'low'
-      });
-    }
-
-    // تحسين التوقيت
-    const bestSeason = Object.entries(item.seasonalFactors)
-      .reduce((min, [season, factor]) => factor < min[1] ? [season, factor] : min);
-    
-    if (bestSeason[1] < 0.95) {
-      optimizations.push({
-        type: 'timing',
-        description: `الشراء في ${this.getSeasonName(bestSeason[0])} يوفر ${((1 - bestSeason[1]) * 100).toFixed(1)}%`,
-        potentialSaving: item.currentPrice * context.quantity * (1 - bestSeason[1]),
-        effort: 'medium'
-      });
-    }
-
-    // تحسين الجودة
-    if (item.qualityGrades.economy.multiplier < 0.9) {
-      optimizations.push({
-        type: 'quality',
-        description: `استخدام الدرجة الاقتصادية يوفر ${((1 - item.qualityGrades.economy.multiplier) * 100).toFixed(1)}%`,
-        potentialSaving: item.currentPrice * context.quantity * (1 - item.qualityGrades.economy.multiplier),
-        effort: 'low'
-      });
-    }
-
-    return optimizations;
-  }
-
-  // تقدير السعر للبنود غير الموجودة في قاعدة البيانات
-  private estimatePrice(item: BOQItem): { price: number; range: { min: number; max: number; average: number } } {
-    // خوارزمية تقدير بسيطة بناءً على نوع البند والوحدة
-    let basePrice = 50; // سعر افتراضي
-
-    // تعديل حسب نوع البند
-    const itemName = item.itemName.toLowerCase();
-    
-    if (itemName.includes('خرسانة') || itemName.includes('concrete')) {
-      basePrice = 280;
-    } else if (itemName.includes('حديد') || itemName.includes('steel')) {
-      basePrice = 2700;
-    } else if (itemName.includes('بلاط') || itemName.includes('tile')) {
-      basePrice = 95;
-    } else if (itemName.includes('دهان') || itemName.includes('paint')) {
-      basePrice = 32;
-    } else if (itemName.includes('كهرباء') || itemName.includes('electrical')) {
-      basePrice = 45;
-    } else if (itemName.includes('سباكة') || itemName.includes('plumbing')) {
-      basePrice = 24;
-    }
-
-    // تعديل حسب الوحدة
-    if (item.unit.includes('طن') || item.unit.includes('ton')) {
-      basePrice *= 10;
-    } else if (item.unit.includes('م³') || item.unit.includes('cubic')) {
-      basePrice *= 3;
-    }
-
-    // إضافة تقلب عشوائي
-    const randomFactor = 0.8 + Math.random() * 0.4; // ±20%
-    const finalPrice = Math.round(basePrice * randomFactor);
-
-    return {
-      price: finalPrice,
-      range: {
-        min: Math.round(finalPrice * 0.85),
-        max: Math.round(finalPrice * 1.25),
-        average: finalPrice
-      }
-    };
-  }
-
-  // الحصول على الموسم الحالي
-  private getCurrentSeason(): 'spring' | 'summer' | 'autumn' | 'winter' {
-    const month = new Date().getMonth();
-    if (month >= 2 && month <= 4) return 'spring';
-    if (month >= 5 && month <= 7) return 'summer';
-    if (month >= 8 && month <= 10) return 'autumn';
-    return 'winter';
-  }
-
-  // الحصول على ظروف السوق الحالية
-  private getCurrentMarketConditions(): 'stable' | 'volatile' | 'rising' | 'falling' {
-    // تحليل الأخبار الأخيرة لتحديد اتجاه السوق
-    const recentNews = liveMarketNews.slice(0, 5);
-    let risingCount = 0;
-    let fallingCount = 0;
-
-    recentNews.forEach(news => {
-      if (news.priceChange > 2) risingCount++;
-      else if (news.priceChange < -2) fallingCount++;
     });
-
-    if (risingCount > fallingCount + 1) return 'rising';
-    if (fallingCount > risingCount + 1) return 'falling';
-    if (Math.abs(risingCount - fallingCount) <= 1 && recentNews.length > 3) return 'volatile';
-    return 'stable';
   }
 
-  // الحصول على اسم الموسم
-  private getSeasonName(season: string): string {
-    const seasonNames: { [key: string]: string } = {
-      spring: 'الربيع',
-      summer: 'الصيف',
-      autumn: 'الخريف',
-      winter: 'الشتاء'
-    };
-    return seasonNames[season] || season;
+  // Get market trends
+  getMarketTrends(): Array<{
+    category: string;
+    trend: 'up' | 'down' | 'stable';
+    change: number;
+  }> {
+    return [
+      { category: 'خرسانة ومواد إنشائية', trend: 'up', change: 2.3 },
+      { category: 'حديد وصلب', trend: 'up', change: 3.1 },
+      { category: 'مواد التشطيب', trend: 'down', change: -1.2 },
+      { category: 'أعمال كهروميكانيكية', trend: 'stable', change: 0.5 },
+      { category: 'مواد العزل', trend: 'up', change: 1.8 }
+    ];
   }
 
-  // مسح الكاش
+  // Clear price cache
   clearCache(): void {
-    this.cache.clear();
+    this.priceCache.clear();
+  }
+
+  // Get cache statistics
+  getCacheStats(): {
+    size: number;
+    hitRate: number;
+    lastUpdate: Date;
+  } {
+    return {
+      size: this.priceCache.size,
+      hitRate: 0.85, // Simulated hit rate
+      lastUpdate: this.lastUpdate
+    };
   }
 }
 
-export const marketPricingEngine = MarketPricingEngine.getInstance();
+export const marketPricingEngine = new MarketPricingEngine();

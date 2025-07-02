@@ -7,7 +7,7 @@ import EnhancedDropdownSelect from './EnhancedDropdownSelect';
 import { callGeminiAPI, extractJSONFromResponse } from '../utils/api';
 import { marketPricingEngine } from '../utils/marketPricing';
 import { securityManager } from '../utils/securityManager';
-import { performanceOptimizer } from '../utils/performanceOptimizer';
+import { performanceMonitor } from '../utils/performanceMonitor';
 import type { ProjectDetails, CostBreakdown, BOQItem, Language } from '../types';
 
 interface EnhancedProjectEstimationProps {
@@ -86,7 +86,7 @@ export default function EnhancedProjectEstimation({
       const encryptedProjectData = securityManager.encryptData(projectDetails);
 
       // قياس الأداء
-      await performanceOptimizer.measureFunction('project_estimation', async () => {
+      await performanceMonitor.measureFunction('project_estimation', async () => {
         const currentProjectType = projectTypeOptions.find(p => p.value === projectDetails.projectType);
         const currentCity = cityOptions.find(c => c.value === projectDetails.city);
 

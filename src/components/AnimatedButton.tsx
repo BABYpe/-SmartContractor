@@ -27,7 +27,7 @@ export default function AnimatedButton({
     focus:outline-none focus:ring-4 focus:ring-opacity-50
     disabled:cursor-not-allowed disabled:opacity-50
     flex items-center justify-center
-    border border-white/20
+    border border-white/20 relative overflow-hidden
   `;
 
   const variantClasses = {
@@ -53,6 +53,19 @@ export default function AnimatedButton({
       whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
       transition={{ type: 'spring', stiffness: 400, damping: 17 }}
     >
+      {/* Shimmer Effect */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        initial={{ x: '-100%' }}
+        animate={{ x: '100%' }}
+        transition={{ 
+          duration: 2, 
+          repeat: Infinity, 
+          repeatDelay: 3,
+          ease: "easeInOut"
+        }}
+      />
+      
       {loading && <LoadingSpinner size="sm" />}
       <span className={loading ? 'ml-2' : ''}>{children}</span>
     </motion.button>
